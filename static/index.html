@@ -31,6 +31,12 @@ var context = canvas.getContext("2d");
 var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
 
+//https://stackoverflow.com/questions/14012768/html5-canvas-background-image 45
+var background = new Image();
+background.onload = () => {
+    ctx.drawImage(background, 0, 0, canvas.width, canvas.height);   
+}
+background.src = "download.png";
 
 function sendJSONXMLHTTPRequest(url, objects, callback) {
     var xhr = new XMLHttpRequest();
@@ -40,6 +46,8 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
                 if (xhr.status==200) {
                     //XXX: parse some JSON from the request!
                     //XXX: Pass the data to the callback!
+                    response = xhr.response
+                    callback(JSON.parse(response))
                 }
             } 
             catch(e) {
@@ -48,8 +56,13 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
         }
     };
     //XXX: POST to a URL
+    xhr.open("POST", url);
+
     //XXX: set the mimetype and the accept headers!
     // Remember to use application/json !
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.send(JSON.stringify(objects));
 }
 
 
@@ -59,13 +72,14 @@ world = {};
 function drawCircle(context,entity) {
     with(context) {
         beginPath();              
-        lineWidth = 3;
+        lineWidth = 6;
         var x = entity["x"];
         var y = entity["y"];
         //moveTo(x,y);
         fillStyle = entity["colour"];
         strokeStyle = fillStyle;
         arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
+        fill();
         stroke();                                
     }
 }
@@ -82,9 +96,10 @@ function prepEntity(entity) {
 
 function clearFrame() {
     with(context) {
-	moveTo(0,0);
-	fillStyle = "#000";
-	fillRect(0,0,W,H);
+        moveTo(0,0);
+
+        //https://www.w3schools.com/tags/canvas_drawimage.asp
+        context.drawImage(background, 0, 0, canvas.width, canvas.height);
     }
 
 }
@@ -138,6 +153,9 @@ function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just  modified!
+    sendJSONXMLHTTPRequest('http://localhost:5000/entity/' + entity, data, 
+        res => { world[entity] = res }
+    );
 
 }
 
@@ -247,16 +265,16 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'#6F00FF', 'radius': 15});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'#3C00FF', 'radius': 15});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour':'#E600FF',
+                          'radius':5});
 });
 
 
